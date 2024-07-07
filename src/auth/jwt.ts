@@ -1,6 +1,4 @@
-import jwt, { Jwt, JwtPayload } from 'jsonwebtoken'
-import { parentPort } from 'worker_threads'
-import { User } from '../controllers/user.controller'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 
 const secret = 'secretkey'
 
@@ -9,11 +7,19 @@ function sign(payload: JwtPayload) {
 }
 
 function validate(token: string) {
-    return jwt.verify(token, secret)
+    return jwt.verify(token, secret) as { tag: string; iat: number }
 }
 
-function decodeAuthToken(token: string): { name: string; iat: number } {
-    return jwt.decode(token) as { name: string; iat: number }
+function decodeAuthToken(token: string): { tag: string; iat: number } {
+    return jwt.decode(token) as { tag: string; iat: number }
 }
 
 export const JwtController = { sign, validate, decodeAuthToken }
+
+interface JwtController {
+    sign: (payload: JwtPayload) => string
+    validate: (token: string) => {
+        tag: string
+        iat: number
+    }
+}

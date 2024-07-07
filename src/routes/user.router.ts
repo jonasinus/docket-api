@@ -1,34 +1,33 @@
 import Express from 'express'
-import { readFileSync, writeFileSync } from 'fs'
-import { UserController } from '../controllers/user.controller'
-import { authTokenName } from '../config/cookies'
-import { JwtController } from '../auth/jwt'
-import { authenticate, Request } from '../auth/requireAuth'
+import { authTokenName } from '@config/cookies'
+import { JwtController } from '@auth/jwt'
+import { authenticate } from '@auth/requireAuth'
+import { createUser } from '@controller/user.controller'
+import { Request } from '@'
 
 const userRouter = Express.Router()
 
 userRouter.get('/', authenticate, (req: Request, res) => {
-    res.status(200).json({ token: req.token, user: req.user })
+    res.status(200).json({ token: req.token, user: req.user, proT: Date.now(), recT: req.receivedAt })
 })
 
-userRouter.post('/create', (req, res) => {
-    const { name, password } = req.body
+userRouter.post('/create', async (req, res) => {
+    const { tag, password } = req.body
 
-    const exists = UserController.findUserBy({ name })
-
-    if (exists !== undefined) return res.status(401).json({ error: 'username already taken' })
-
-    UserController.addUser({ name, password })
-
-    return res.status(201).json({ msg: 'user created!' })
+    const user = createUser(tag, password)
+        .then((user) => {
+            res.cookie(authTokenName, JwtController.sign({ tag }))
+            res.status(201).json({ msg: 'user created!' })
+        })
+        .catch((err) => {
+            res.status(500).json({ error: 'could not create user' })
+        })
 })
 
 userRouter.post('/login', (req, res) => {
-    const { name, password } = req.body
-    const exists = UserController.findUserBy({ name })
-    if (exists === undefined || exists.password !== password) return res.status(400).json({ error: 'no user exists with that password' })
+    const { name: tag, password } = req.body
 
-    res.cookie(authTokenName, JwtController.sign({ name }))
+    res.cookie(authTokenName, JwtController.sign({ tag }))
     res.status(200).json({ msg: 'authenticated!' })
 })
 

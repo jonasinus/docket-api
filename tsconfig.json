@@ -91,6 +91,46 @@
     // "allowUnreachableCode": true,                     /* Disable error reporting for unreachable code. */
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
-    "skipLibCheck": true /* Skip type checking all .d.ts files. */
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */,
+    "paths": {
+      "@": [
+        "./src/index.ts"
+      ],
+      "@model/*": [
+        "./src/models/*"
+      ],
+      "@auth/*": [
+        "./src/auth/*"
+      ],
+      "@route/*": [
+        "./src/routes/*"
+      ],
+      "@error/*": [
+        "./src/errors/*"
+      ],
+      "@database": [
+        "./src/database/database.ts"
+      ],
+      "@controller/*": [
+        "./src/controllers/*"
+      ],
+      "@config/*": [
+        "./src/configs/*"
+      ],
+      "@interface/*": [
+        "./src/interfaces/*"
+      ]
+    },
+    "lib": [
+      "es5",
+      "es6",
+      "dom",
+      "dom.iterable"
+    ]
+  },
+  "ts-node": {
+    "require": [
+      "tsconfig-paths/register"
+    ]
   }
 }

@@ -1,15 +1,12 @@
 import Express, { NextFunction } from 'express'
-import { JwtController } from './jwt'
-import { JwtPayload } from 'jsonwebtoken'
+import { Request } from '@'
+import { JwtController } from '@auth/jwt'
+import Database from '@database'
 
-export interface Request extends Express.Request {
-    token?: string | JwtPayload
-    user?: { name: string; iat: number }
-}
-
-function authenticate(req: Request, res: Express.Response, next: NextFunction) {
+async function authenticate(req: Request, res: Express.Response, next: NextFunction) {
     try {
         const token = req.cookies.token
+        const database = await Database()
 
         if (!token || token.trim() === '') return res.status(401).json({ error: 'no token in cookie provided' })
 
