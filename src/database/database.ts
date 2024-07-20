@@ -106,5 +106,15 @@ type DB_Runntime = {
     pool: Pool | null
 }
 
+interface Database {
+    config: ({ host, database, password, user, port }: Omit<DB_Credentials, 'port'> & { port?: string }) => Database
+    connect: () => Promise<void>
+    getOne: <T>(sql: string, params?: any[]) => Promise<T | null>
+    getAll: <T>(sql: string, params?: any[]) => Promise<T[]>
+    runOnce: (sql: string, params?: any[]) => Promise<ResultSetHeader>
+    restart: () => Promise<void>
+    disconnect: () => Promise<void>
+}
+
 export type { DB_Credentials }
 export default Database

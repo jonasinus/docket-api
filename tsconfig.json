@@ -119,6 +119,9 @@
       ],
       "@interface/*": [
         "./src/interfaces/*"
+      ],
+      "@middleware/*": [
+        "./src/middlewares/*"
       ]
     },
     "lib": [

@@ -1,79 +1,71 @@
-import { NextFunction, Response, Router } from 'express'
-import { Request } from '@'
+import { Router } from 'express'
+
+import Database from '@database'
 import { User } from '@model/user.model'
-import { accessToken } from '@config/cookie.config'
-import { hashPassword, signToken, validateToken } from '@auth/auth'
-import { checkTagAvailability, createUser, getUser, updateUser } from '@controller/user.controller'
+import tokenConfig from '@config/token.config'
+import auth from '@middleware/authenticate.middleware'
+import { createSalt, hashPassword, issueAuthCookies, randomString, revokeRefreshToken } from '@auth/auth'
+import { AuthenticatingRequest, AuthenticatedRequest } from '@model/request.models'
 
 const userRouter = Router()
 
-userRouter.get('/', authenticate, async (req: Request, res) => {
-    res.status(200).json({ user: req.user, authenticated: req.authenticated, authorization: req.authorization })
-})
-
 userRouter.post('/create', async (req, res) => {
     const { tag } = req.body
-    if (typeof tag !== 'string') return res.status(401).json({ error: 'req.body.tag must be provided' })
 
-    const tagAvailable = await checkTagAvailability(tag)
-    if (tagAvailable == 'taken') return res.status(401).json({ error: 'tag already taken', try: 'a different tag' })
+    const salt = createSalt()
+    const key = randomString(8)
+    const user = hashPassword({ tag, salt, password: key, activated: false })
+    await Database.runOnce('INSERT INTO users (tag, salt, password, activated) VALUES (?,?,?,?)', [user.tag, user.salt, user.password, user.activated])
 
-    const user = await createUser(tag)
-    res.status(201).json({ msg: 'created user, activate it', user })
+    res.status(201).json({
+        msg: 'user created!',
+        try: 'activating the account using the issued activation-key',
+        user: { ...user, key: user.password, password: undefined },
+        key
+    })
 })
 
 userRouter.post('/activate', async (req, res) => {
-    const { tag, password, newPassword } = req.body
-    if (typeof tag !== 'string' || typeof password !== 'string' || typeof newPassword !== 'string')
-        return res.status(401).json({ error: 'req.body.tag, req.body.password and req.body.newPassword must be provided' })
+    const { tag, key, password } = req.body
+    const user = await Database.getOne<User>('SELECT * FROM users WHERE tag = ? AND activated = ?', [tag, false])
+    if (!user) return res.status(401).json({ error: 'unknown or activated user' })
 
-    const user = await getUser(tag)
-    if (!user) return res.status(401).json({ error: 'no user with this tag found', try: 'checking if input tag is correct' })
+    const passwordHash = hashPassword({ ...user, password: key })
+    if (passwordHash.password !== user.password) return res.status(401).json({ error: 'invalid activation-key' })
 
-    if (user.activated) return res.status(401).json({ error: 'user already activated' })
+    const hashedPassword = hashPassword({ ...user, password }).password
+    await Database.runOnce('UPDATE users SET password = ?, activated = ? WHERE tag = ?', [hashedPassword, true, tag])
 
-    user.activated = true
-    user.password = newPassword
-    await updateUser(hashPassword(user))
-
-    res.status(200).json({ msg: 'user activated, password updated!' })
+    await issueAuthCookies(user, res)
+    res.status(200)
+    res.json({ msg: 'activated and authenticated!' })
 })
 
-userRouter.post('/login', async (req, res) => {
+userRouter.post('/login', async (req: AuthenticatingRequest, res) => {
     const { tag, password } = req.body
-    if (typeof tag !== 'string' || typeof password !== 'string') return res.status(401).json({ error: 'req.body.tag and req.body.password must be provided' })
+    const user = await Database.getOne<User>('SELECT * FROM users WHERE tag = ?', [tag])
+    if (!user) return res.status(401).json({ error: 'invalid credentials' })
 
-    const user = await getUser(tag)
-    if (!user) return res.status(401).json({ error: 'no user with this tag found', try: 'checking if input tag is correct' })
+    const passwordHash = hashPassword({ ...user, password })
+    if (passwordHash.password !== user.password) return res.status(401).json({ error: 'invalid credentials' })
 
-    if (!user.activated) return res.status(401).json({ error: 'user must be activated before use', try: 'activating the account at /activate' })
-
-    const hash = hashPassword({ ...user, password })
-    if (hash.password !== user.password) return res.status(401).json({ error: 'invalid tag-password combination' })
-
-    res.cookie(accessToken.name, signToken({ ...user, password: undefined, salt: undefined }), { ...accessToken.options, signed: true })
+    await issueAuthCookies(user, res)
     res.status(200)
-    res.json({ msg: 'logged in!' })
+    res.json({ msg: 'authenticated' })
 })
 
-userRouter.post('/logout', authenticate, (req: Request, res) => {
-    res.clearCookie(accessToken.name)
-    res.status(200)
-    res.json({ msg: 'logged out!' })
+userRouter.get('/', auth, (dReq, res) => {
+    const req = dReq as AuthenticatedRequest
+    return res.status(200).json({ ...req.atkn })
 })
 
-async function authenticate(req: Request, res: Response, next: NextFunction) {
-    const cookies = req.signedCookies
-    if (!cookies || typeof cookies !== 'object' || cookies[accessToken.name] == undefined)
-        return res.status(401).json({ error: 'access cookie(s) missing', try: 'signing in again' })
-
-    const tokenValid = validateToken(cookies[accessToken.name])
-    if (!tokenValid) return res.status(401).json({ error: 'access token invalid', try: 'signing in again' })
-
-    req.user = tokenValid as Omit<Omit<User, 'password'>, 'salt'>
-    req.authenticated = true
-    req.authorization = 0
-    next()
-}
+userRouter.post('/logout', auth, (dReq, res) => {
+    const req = dReq as AuthenticatedRequest
+    revokeRefreshToken(req.atkn.tag)
+    res.clearCookie(tokenConfig.aTkn.cookieName)
+    res.clearCookie(tokenConfig.rTkn.cookieName)
+    res.status(200)
+    res.json({ msg: 'logged out' })
+})
 
 export default userRouter

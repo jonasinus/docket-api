@@ -5,4 +5,9 @@ type User = {
     activated: boolean
 }
 
-export type { User }
+type UserTokenPayload = {
+    tag: string
+    activated: boolean
+}
+
+export type { User, UserTokenPayload }
