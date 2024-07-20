@@ -1,6 +1,6 @@
-import { createSalt, randomString } from '@auth/auth'
+import { createSalt, randomString } from '@auth'
 import Database from '@database'
-import { User } from '@model/user.model'
+import { User } from '@models'
 
 async function createUser(tag: string): Promise<User> {
     const tagTaken = await Database.getOne('SELECT * FROM users WHERE tag = ?', [tag])

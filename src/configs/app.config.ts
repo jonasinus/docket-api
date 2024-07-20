@@ -1,12 +1,12 @@
 import Express from 'express'
 import { WebSocketServer } from 'ws'
 import cookieParser from 'cookie-parser'
-import { hostIp } from '@config/hostIp.config'
-import { cookieSecret } from '@config/cookie.config'
+import { hostIp } from './hostIp.config'
 
 const App = IApp()
 
 function IApp() {
+    const cookieSecret = 'secret'
     const iapp = Express()
     iapp.use(Express.json())
     iapp.use(cookieParser(cookieSecret))
@@ -26,7 +26,10 @@ function IApp() {
         app: iapp,
         server,
         port,
-        wss
+        wss,
+        cookie: {
+            secret: cookieSecret
+        }
     }
 }
 

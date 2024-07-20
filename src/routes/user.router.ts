@@ -1,11 +1,10 @@
 import { Router } from 'express'
 
 import Database from '@database'
-import { User } from '@model/user.model'
-import tokenConfig from '@config/token.config'
-import auth from '@middleware/authenticate.middleware'
-import { createSalt, hashPassword, issueAuthCookies, randomString, revokeRefreshToken } from '@auth/auth'
-import { AuthenticatingRequest, AuthenticatedRequest } from '@model/request.models'
+import { auth } from '@middlewares'
+import { TokenConfig } from '@configs'
+import { AuthenticatedRequest, AuthenticatingRequest, User } from '@models'
+import { createSalt, hashPassword, issueAuthCookies, randomString, revokeRefreshToken } from '@auth'
 
 const userRouter = Router()
 
@@ -62,8 +61,8 @@ userRouter.get('/', auth, (dReq, res) => {
 userRouter.post('/logout', auth, (dReq, res) => {
     const req = dReq as AuthenticatedRequest
     revokeRefreshToken(req.atkn.tag)
-    res.clearCookie(tokenConfig.aTkn.cookieName)
-    res.clearCookie(tokenConfig.rTkn.cookieName)
+    res.clearCookie(TokenConfig.aTkn.cookieName)
+    res.clearCookie(TokenConfig.rTkn.cookieName)
     res.status(200)
     res.json({ msg: 'logged out' })
 })

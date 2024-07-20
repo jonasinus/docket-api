@@ -1,12 +1,13 @@
 import dotenv from 'dotenv'
 
 import Database from '@database'
-import userRouter from '@route/user.router'
-import Console from '@config/console.config'
-import { app } from '@config/app.config'
+import { userRouter } from '@routes'
+import { Console, app } from '@configs'
 
 Console.config().enable()
+
 dotenv.config()
+
 Database.config({
     host: process.env.DBHOST,
     database: process.env.DBDATABASE,

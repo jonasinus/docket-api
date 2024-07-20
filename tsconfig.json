@@ -96,32 +96,26 @@
       "@": [
         "./src/index.ts"
       ],
-      "@model/*": [
-        "./src/models/*"
-      ],
-      "@auth/*": [
-        "./src/auth/*"
-      ],
-      "@route/*": [
-        "./src/routes/*"
-      ],
-      "@error/*": [
-        "./src/errors/*"
+      "@auth": [
+        "./src/auth/auth.ts"
       ],
       "@database": [
         "./src/database/database.ts"
       ],
-      "@controller/*": [
-        "./src/controllers/*"
+      "@middlewares": [
+        "./src/middlewares/middlewares.ts"
       ],
-      "@config/*": [
-        "./src/configs/*"
+      "@models": [
+        "./src/models/models.ts"
       ],
-      "@interface/*": [
-        "./src/interfaces/*"
+      "@configs": [
+        "./src/configs/configs.ts"
       ],
-      "@middleware/*": [
-        "./src/middlewares/*"
+      "@routes": [
+        "./src/routes/routers.ts"
+      ],
+      "@errors": [
+        "./src/errors/errors.ts"
       ]
     },
     "lib": [

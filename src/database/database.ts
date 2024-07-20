@@ -1,4 +1,4 @@
-import DatabaseError from '@error/database.error'
+import { DatabaseError } from '@errors'
 import { createPool, FieldPacket, OkPacketParams, Pool, PoolConnection, RowDataPacket, QueryResult, OkPacket, ResultSetHeader } from 'mysql2/promise'
 
 const Database = IDatabase()

@@ -1,10 +1,10 @@
-import { User, UserTokenPayload } from '@model/user.model'
-import crypto from 'node:crypto'
-import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
-import Database from '@database'
-import tokenConfig from '@config/token.config'
-import { AccessTokenPayload, RefreshTokenPayload } from '@model/token.models'
 import Express from 'express'
+import crypto from 'node:crypto'
+import jwt, { SignOptions } from 'jsonwebtoken'
+
+import Database from '@database'
+import { TokenConfig } from '@configs'
+import { User, AccessTokenPayload, RefreshTokenPayload } from '@models'
 
 function createSalt(): string {
     return crypto.randomBytes(32).toString('hex')
@@ -45,8 +45,8 @@ function signToken(payload: Object, options?: SignOptions) {
 
 async function generateTokens(accessTokenPayload: AccessTokenPayload) {
     const refreshTokenPayload: RefreshTokenPayload = { rdm: randomString(32) }
-    const refreshToken = jwt.sign(refreshTokenPayload, tokenConfig.rTkn.secret, { expiresIn: '15d' })
-    const accessToken = jwt.sign(accessTokenPayload, tokenConfig.aTkn.secret, { expiresIn: '1m' })
+    const refreshToken = jwt.sign(refreshTokenPayload, TokenConfig.rTkn.secret, { expiresIn: '15d' })
+    const accessToken = jwt.sign(accessTokenPayload, TokenConfig.aTkn.secret, { expiresIn: '1m' })
     await Database.runOnce('INSERT INTO refresh_tokens (user_tag, token, valid) VALUES (?, ?, ?)', [accessTokenPayload.tag, refreshTokenPayload.rdm, true])
     return {
         refreshToken,
@@ -60,13 +60,13 @@ async function revokeRefreshToken(userTag: string) {
 
 async function issueAuthCookies(accessTokenPayload: AccessTokenPayload, res: Express.Response, options?: { removePrevious?: boolean }) {
     if (options && options.removePrevious) {
-        res.clearCookie(tokenConfig.aTkn.cookieName)
-        res.clearCookie(tokenConfig.rTkn.cookieName)
+        res.clearCookie(TokenConfig.aTkn.cookieName)
+        res.clearCookie(TokenConfig.rTkn.cookieName)
         revokeRefreshToken(accessTokenPayload.tag)
     }
     const tokens = await generateTokens(accessTokenPayload)
-    res.cookie(tokenConfig.aTkn.cookieName, tokens.accessToken)
-    res.cookie(tokenConfig.rTkn.cookieName, tokens.refreshToken)
+    res.cookie(TokenConfig.aTkn.cookieName, tokens.accessToken)
+    res.cookie(TokenConfig.rTkn.cookieName, tokens.refreshToken)
 }
 
 export { createSalt, randomString, hash, hashPassword, signToken, revokeRefreshToken, generateTokens, issueAuthCookies }
